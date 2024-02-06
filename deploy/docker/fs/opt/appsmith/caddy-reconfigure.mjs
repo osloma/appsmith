@@ -116,9 +116,9 @@ parts.push(`
 
   rate_limit {
     zone dynamic_zone {
-         key {http.request.remote_ip}
-         events 15
-         window 1s
+      key {http.request.remote_ip}
+      events 15
+      window 1s
     }
   }
 
