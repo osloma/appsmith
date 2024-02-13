@@ -16,7 +16,6 @@ export const featureFlagIntercept = (
       ...flags,
       release_app_sidebar_enabled: true,
       release_show_new_sidebar_pages_pane_enabled: true,
-      rollout_consolidated_page_load_fetch_enabled: true,
     },
     errorDisplay: "",
   };
@@ -42,9 +41,6 @@ export const getConsolidatedDataApi = (
           draft.data.featureFlags.data["release_app_sidebar_enabled"] = true;
           draft.data.featureFlags.data[
             "release_show_new_sidebar_pages_pane_enabled"
-          ] = true;
-          draft.data.featureFlags.data[
-            "rollout_consolidated_page_load_fetch_enabled"
           ] = true;
         });
         return res.send(updatedResponse);
@@ -73,7 +69,6 @@ export const featureFlagInterceptForLicenseFlags = () => {
           modifiedResponse = {
             ...modifiedResponse,
             release_app_sidebar_enabled: true,
-            rollout_consolidated_page_load_fetch_enabled: true,
           };
           res.send({
             responseMeta: {
@@ -103,9 +98,6 @@ export const featureFlagInterceptForLicenseFlags = () => {
             },
           );
           draft.data.featureFlags.data["release_app_sidebar_enabled"] = true;
-          draft.data.featureFlags.data[
-            "rollout_consolidated_page_load_fetch_enabled"
-          ] = true;
         });
         return res.send(updatedResponse);
       }
