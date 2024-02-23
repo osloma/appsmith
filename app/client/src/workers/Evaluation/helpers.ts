@@ -76,23 +76,18 @@ const LARGE_COLLECTION_SIZE = 100;
 const REGEX_NESTED_OBJECT_PATH = /(.+)\.\[\'(.*)\'\]/;
 
 const generateWithKey = (basePath: any, key: any) => {
-  const segmentedPath = [...basePath, key];
-
   if (isNumber(key)) {
     return {
       path: basePath.join(".") + ".[" + key + "]",
-      segmentedPath,
     };
   }
   if (key.includes(".")) {
     return {
       path: basePath.join(".") + ".['" + key + "']",
-      segmentedPath,
     };
   }
   return {
     path: basePath.join(".") + "." + key,
-    segmentedPath,
   };
 };
 
@@ -198,20 +193,32 @@ const normaliseEvalPath = (identicalEvalPathsPatches: any) =>
     {},
   );
 
+const getEvalOrderTree = (dataTree: any, evalOrder: any) => {
+  return evalOrder.reduce((acc: any, path: any) => {
+    set(acc, path, get(dataTree, path));
+    return acc;
+  }, {});
+};
 const generateDiffUpdates = (
   oldDataTree: any,
   dataTree: any,
   ignoreLargeKeys: any,
+  evalOrder: string[],
 ): DiffWithReferenceState[] => {
   const attachDirectly: DiffWithReferenceState[] = [];
   const ignoreLargeKeysHasBeenAttached = new Set();
+
   const attachLater: DiffWithReferenceState[] = [];
+
+  const reducedOldState = getEvalOrderTree(oldDataTree, evalOrder);
+  const reducedState = getEvalOrderTree(dataTree, evalOrder);
   const updates =
-    diff(oldDataTree, dataTree, (path, key) => {
+    diff(reducedOldState, reducedState, (path, key) => {
       if (!path.length || key === "__evaluation__") return false;
 
-      const { path: setPath, segmentedPath } = generateWithKey(path, key);
+      const { path: setPath } = generateWithKey(path, key);
 
+      const segmentedPath = [...path, key];
       // if ignore path is present...this segment of code generates the data compression patches
       if (!!ignoreLargeKeys[setPath]) {
         const originalStateVal = get(oldDataTree, segmentedPath);
@@ -284,9 +291,15 @@ export const generateOptimisedUpdates = (
   oldDataTree: any,
   dataTree: any,
   identicalEvalPathsPatches?: Record<string, string>,
+  evalOrder: string[] = [],
 ): DiffWithReferenceState[] => {
   const ignoreLargeKeys = normaliseEvalPath(identicalEvalPathsPatches);
-  const updates = generateDiffUpdates(oldDataTree, dataTree, ignoreLargeKeys);
+  const updates = generateDiffUpdates(
+    oldDataTree,
+    dataTree,
+    ignoreLargeKeys,
+    evalOrder,
+  );
   return updates;
 };
 
@@ -294,6 +307,7 @@ export const generateSerialisedUpdates = (
   prevState: any,
   currentState: any,
   identicalEvalPathsPatches: any,
+  evalOrder?: any,
 ): {
   serialisedUpdates: string;
   error?: { type: string; message: string };
@@ -302,6 +316,7 @@ export const generateSerialisedUpdates = (
     prevState,
     currentState,
     identicalEvalPathsPatches,
+    evalOrder,
   );
 
   //remove lhs from diff to reduce the size of diff upload,
@@ -327,6 +342,7 @@ export const generateSerialisedUpdates = (
 export const generateOptimisedUpdatesAndSetPrevState = (
   dataTree: any,
   dataTreeEvaluator: any,
+  evalOrder: string[] = [],
 ) => {
   const identicalEvalPathsPatches =
     dataTreeEvaluator?.getEvalPathsIdenticalToState();
@@ -335,6 +351,7 @@ export const generateOptimisedUpdatesAndSetPrevState = (
     dataTreeEvaluator.getPrevState(),
     dataTree,
     identicalEvalPathsPatches,
+    evalOrder,
   );
 
   if (error) {
